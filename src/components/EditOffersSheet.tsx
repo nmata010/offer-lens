@@ -94,18 +94,18 @@ function SheetBody({
 
   return (
     <>
-      <SheetHeader className="p-6 pb-4 border-b border-slate-200">
+      <SheetHeader className="p-4 pr-10 sm:p-6 sm:pb-4 border-b border-slate-200">
         <SheetTitle>Edit offers</SheetTitle>
         <SheetDescription>
           All numbers feed the projection. Changes save when you hit Save.
         </SheetDescription>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 max-w-full justify-start overflow-x-auto">
             {draft.map((o) => (
-              <TabsTrigger key={o.id} value={o.id}>
+              <TabsTrigger key={o.id} value={o.id} className="shrink-0">
                 <span
                   className="w-2 h-2 rounded-sm mr-2"
                   style={{ background: paletteFor(o.palette).accent }}
@@ -126,7 +126,7 @@ function SheetBody({
         </Tabs>
       </div>
 
-      <SheetFooter className="border-t border-slate-200 p-4 flex-row justify-end gap-2">
+      <SheetFooter className="border-t border-slate-200 p-4 grid grid-cols-2 sm:flex sm:flex-row sm:justify-end gap-2">
         <SheetClose asChild>
           <Button variant="outline">Cancel</Button>
         </SheetClose>
@@ -277,7 +277,7 @@ function OfferForm({ offer, onChange, onRemove }: OfferFormProps) {
 
       <FieldGroup title="Indirect Comp">
         <Subhead>401(k) match</Subhead>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <NumField
             label="Match (%)"
             value={offer.equity.match401k.matchPct}
@@ -290,7 +290,7 @@ function OfferForm({ offer, onChange, onRemove }: OfferFormProps) {
           />
         </div>
         <Subhead>Paid parental leave</Subhead>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <NumField
             label="Weeks"
             value={offer.benefits.parentalLeave?.weeks ?? 0}
@@ -335,7 +335,7 @@ function OfferForm({ offer, onChange, onRemove }: OfferFormProps) {
           <div className="text-xs uppercase tracking-wider font-semibold text-slate-500">
             Benefits — Plans
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <Button
               variant="outline"
               size="sm"
@@ -533,7 +533,7 @@ function PlanCard({
 }) {
   return (
     <div className="rounded-lg border border-slate-200 p-4 space-y-3">
-      <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
         <Field label="Plan level">
           <Input
             value={plan.level}
@@ -574,7 +574,7 @@ function PlanCard({
           value={plan.medicalMonthlyPremium}
           onChange={(v) => onChange({ medicalMonthlyPremium: v })}
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <NumField
             label="Annual deductible ($)"
             value={plan.medicalDeductible}

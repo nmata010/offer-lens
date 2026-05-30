@@ -36,7 +36,7 @@ export function SummaryCard({
 
   return (
     <Card
-      className="p-5 relative overflow-hidden gap-0"
+      className="p-4 sm:p-5 relative overflow-hidden gap-0"
       style={{ boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.04)" }}
     >
       <div
@@ -76,7 +76,7 @@ export function SummaryCard({
             Y1 total comp
           </div>
           <div
-            className="text-3xl font-semibold tabular-nums text-slate-900 mt-0.5"
+            className="text-2xl sm:text-3xl font-semibold tabular-nums text-slate-900 mt-0.5"
             style={{ letterSpacing: "-0.02em" }}
           >
             {fmt(y1Total)}
@@ -95,7 +95,7 @@ export function SummaryCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-baseline gap-4 text-xs tabular-nums text-slate-500">
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs tabular-nums text-slate-500">
         <span>
           Cash{" "}
           <span className="text-slate-900 font-medium">
@@ -108,7 +108,7 @@ export function SummaryCard({
             {fmt(y1.equity)}
           </span>
         </span>
-        <span className="ml-auto">
+        <span className="sm:ml-auto">
           4-yr{" "}
           <span className="text-slate-900 font-medium">
             {fmt(fourYearTc)}

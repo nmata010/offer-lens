@@ -150,7 +150,7 @@ export function ProjectionChart({
 
   return (
     <Card
-      className="p-4 gap-0"
+      className="p-3 sm:p-4 gap-0"
       style={{ boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.04)" }}
     >
       <div className="flex items-center justify-between mb-2 gap-3">
@@ -164,7 +164,7 @@ export function ProjectionChart({
       <div
         className="mb-1 grid gap-2 items-end"
         style={{
-          gridTemplateColumns: `64px repeat(${offers.length}, minmax(0, 1fr)) 8px`,
+          gridTemplateColumns: `minmax(42px, 64px) repeat(${offers.length}, minmax(0, 1fr)) 8px`,
         }}
       >
         <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 self-center">
@@ -186,7 +186,7 @@ export function ProjectionChart({
           return (
             <div
               key={offer.id}
-              className="flex items-center justify-center gap-1 px-1"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-1 px-1"
             >
               <select
                 value={current?.coverage ?? ""}
@@ -238,7 +238,7 @@ export function ProjectionChart({
       </div>
 
       <div
-        className="w-full h-72"
+        className="w-full h-64 sm:h-72"
         role="img"
         aria-label={`Benefits chart for ${offers.map((o) => o.company).join(", ")}`}
       >

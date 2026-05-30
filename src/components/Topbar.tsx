@@ -10,7 +10,7 @@ interface TopbarProps {
 export function Topbar({ onShare, onPrint }: TopbarProps) {
   return (
     <header className="bg-white border-b border-slate-200">
-      <div className="px-8 py-3 flex items-center justify-between">
+      <div className="px-4 py-3 md:px-8 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <img
             src={`${import.meta.env.BASE_URL}favicon.svg`}

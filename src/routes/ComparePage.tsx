@@ -64,6 +64,20 @@ export default function ComparePage() {
     [state.offers],
   )
 
+  const benefitChartScale = useMemo(() => {
+    const totals = state.offers.map((o) => benefitChartTotals(o))
+    return {
+      sharedPositiveMax: totals.reduce(
+        (m, t) => Math.max(m, t.positive),
+        0,
+      ),
+      sharedCostMaxAbs: totals.reduce(
+        (m, t) => Math.max(m, t.costAbs),
+        0,
+      ),
+    }
+  }, [state.offers])
+
   const bestY1Total = useMemo(
     () =>
       projections.reduce((m, p) => {
@@ -177,17 +191,17 @@ export default function ComparePage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Topbar onShare={handleShare} onPrint={handlePrint} />
 
-      <main className="px-8 py-8 max-w-[1280px] mx-auto">
-        <div className="flex items-end justify-between mb-6">
-          <div>
+      <main className="px-4 py-5 md:px-8 md:py-8 max-w-[1280px] mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-5 md:mb-6">
+          <div className="min-w-0">
             <h1
-              className="text-2xl font-semibold text-slate-900"
+              className="text-xl sm:text-2xl font-semibold text-slate-900"
               style={{ letterSpacing: "-0.02em" }}
             >
               {title}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <Button
               variant="outline"
               size="sm"
@@ -202,7 +216,7 @@ export default function ComparePage() {
           </div>
         </div>
 
-        <div className="space-y-5">
+        <div className="hidden space-y-5 md:block">
           <div
             className="grid gap-5"
             style={{
@@ -244,22 +258,62 @@ export default function ComparePage() {
               gridTemplateColumns: `repeat(${Math.max(state.offers.length, 1)}, minmax(0, 1fr))`,
             }}
           >
-            {(() => {
-              const totals = state.offers.map((o) => benefitChartTotals(o))
-              const sharedPositiveMax = totals.reduce(
-                (m, t) => Math.max(m, t.positive),
-                0,
-              )
-              const sharedCostMaxAbs = totals.reduce(
-                (m, t) => Math.max(m, t.costAbs),
-                0,
-              )
-              return state.offers.map((offer) => (
+            {state.offers.map((offer) => (
+              <ProjectionChart
+                key={offer.id}
+                offers={[offer]}
+                sharedPositiveMax={benefitChartScale.sharedPositiveMax}
+                sharedCostMaxAbs={benefitChartScale.sharedCostMaxAbs}
+                onSelectPlan={(offerId, planId) =>
+                  setState((s) => ({
+                    ...s,
+                    offers: s.offers.map((o) =>
+                      o.id === offerId
+                        ? {
+                            ...o,
+                            benefits: {
+                              ...o.benefits,
+                              selectedPlanId: planId,
+                            },
+                          }
+                        : o,
+                    ),
+                  }))
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-5 md:hidden">
+          {state.offers.map((offer) => {
+            const projection = projections.find((p) => p.offerId === offer.id)
+            if (!projection) return null
+            const other = state.offers.find((o) => o.id !== offer.id)
+            const otherProj = other
+              ? projections.find((p) => p.offerId === other.id)
+              : undefined
+            const y1 = projection.perYear[0]
+            const y1Total = y1.cash + y1.equity
+            const otherY1Total = otherProj
+              ? otherProj.perYear[0].cash + otherProj.perYear[0].equity
+              : undefined
+
+            return (
+              <section key={offer.id} className="space-y-3">
+                <SummaryCard
+                  offer={offer}
+                  projection={projection}
+                  bestY1PerCategory={bestY1PerCategory}
+                  isOverallWinner={y1Total >= bestY1Total}
+                  comparisonName={other?.company}
+                  comparisonY1Total={otherY1Total}
+                  onEdit={() => openEditFor(offer.id)}
+                />
                 <ProjectionChart
-                  key={offer.id}
                   offers={[offer]}
-                  sharedPositiveMax={sharedPositiveMax}
-                  sharedCostMaxAbs={sharedCostMaxAbs}
+                  sharedPositiveMax={benefitChartScale.sharedPositiveMax}
+                  sharedCostMaxAbs={benefitChartScale.sharedCostMaxAbs}
                   onSelectPlan={(offerId, planId) =>
                     setState((s) => ({
                       ...s,
@@ -277,9 +331,9 @@ export default function ComparePage() {
                     }))
                   }
                 />
-              ))
-            })()}
-          </div>
+              </section>
+            )
+          })}
         </div>
 
         <div className="mt-8 text-xs text-slate-400 text-center">
