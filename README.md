@@ -70,7 +70,7 @@ This is a comparison tool, not a payroll model.
 - Projections use simple, explainable formulas.
 - Equity is modeled with four-year vesting.
 - Parental leave and PTO are shown as salary-equivalent values.
-- Worst-case medical cost is shown as annual premiums + deductible + OOP max.
+- Worst-case medical cost is shown as annual premiums + deductible + remaining OOP risk after deductible.
 - Schema version bumps currently reset saved local data instead of migrating it.
 
 ## Stack
