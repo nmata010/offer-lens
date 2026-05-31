@@ -36,7 +36,8 @@ Open <http://localhost:5173>.
 - `src/lib/storage.ts` saves and loads the current state from `localStorage`.
 - `src/lib/share.ts` encodes and decodes URL share links.
 
-For the higher-level map, see [docs/architecture.md](docs/architecture.md).
+For more project context, see [docs/requirements.md](docs/requirements.md) and
+[docs/architecture.md](docs/architecture.md).
 
 ## Scripts
 
@@ -44,24 +45,6 @@ For the higher-level map, see [docs/architecture.md](docs/architecture.md).
 - `npm run build` — type-check and build for production
 - `npm run lint` — ESLint
 - `npm test` — Vitest
-
-## Deploy
-
-This repo includes a GitHub Pages workflow at `.github/workflows/deploy-pages.yml`.
-
-To publish it:
-
-1. Push the repo to GitHub.
-2. In the repository settings, open **Pages**.
-3. Set **Build and deployment** to **GitHub Actions**.
-4. Push to `staging`, push to `main`, or run the workflow manually.
-
-Both `staging` and `main` can deploy. GitHub Pages serves the most recent
-successful deployment, so pushing to `staging` previews staged work and merging
-to `main` publishes the stable version.
-
-The Vite base path is detected from `GITHUB_REPOSITORY`, so project pages like
-`https://<user>.github.io/offerlens/` work without changing local dev.
 
 ## Simplifications
 
@@ -76,6 +59,12 @@ This is a comparison tool, not a payroll model.
 ## Stack
 
 Vite, React 19, TypeScript, Tailwind v4, shadcn/ui, Recharts, Vitest.
+
+## Maintainer Docs
+
+- [Requirements](docs/requirements.md)
+- [Architecture](docs/architecture.md)
+- [Release notes](docs/release.md)
 
 ## License
 

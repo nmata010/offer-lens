@@ -53,7 +53,8 @@ The projection math is intentionally simple and explainable:
 - 401(k) match is based on that year's salary after annual raise.
 - Parental leave is counted once in year one as salary-equivalent value.
 - PTO is counted as salary-equivalent weekly value.
-- Worst-case medical cost is shown as annual premiums + deductible + OOP max.
+- Worst-case medical cost is shown as annual premiums + deductible + remaining
+  OOP risk after deductible.
 
 These are estimates for comparison, not payroll-grade calculations.
 
