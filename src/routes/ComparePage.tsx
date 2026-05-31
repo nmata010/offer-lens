@@ -425,8 +425,25 @@ export default function ComparePage() {
           })}
         </div>
 
-        <div className="mt-8 text-xs text-slate-400 text-center">
-          Numbers are projections, not guarantees · saved in your browser
+        <div className="mt-8 flex items-center justify-center gap-3 text-xs text-slate-400">
+          <span>Numbers are projections, not guarantees · saved in your browser</span>
+          <a
+            href="https://github.com/nmata010/offer-lens"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="View OfferLens on GitHub"
+            className="rounded-md p-1 text-slate-400 transition-colors hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.69 5.47 7.78.4.08.55-.18.55-.4 0-.2-.01-.87-.01-1.58-2.01.38-2.53-.5-2.69-.95-.09-.23-.48-.95-.82-1.14-.28-.16-.68-.55-.01-.56.63-.01 1.08.59 1.23.83.72 1.24 1.87.89 2.33.68.07-.53.28-.89.51-1.1-1.78-.21-3.64-.91-3.64-4.05 0-.89.31-1.63.82-2.2-.08-.21-.36-1.04.08-2.17 0 0 .67-.22 2.2.84A7.44 7.44 0 0 1 8 3.9c.68 0 1.36.09 2 .28 1.53-1.06 2.2-.84 2.2-.84.44 1.13.16 1.96.08 2.17.51.57.82 1.3.82 2.2 0 3.15-1.87 3.84-3.65 4.05.29.25.54.75.54 1.52 0 1.1-.01 1.99-.01 2.27 0 .22.15.48.55.4A8.08 8.08 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z" />
+            </svg>
+          </a>
         </div>
       </main>
 
