@@ -32,7 +32,7 @@ export const BENEFIT_GAIN_LABELS: Record<BenefitGainKey, string> = {
 }
 
 export const BENEFIT_COST_LABELS: Record<BenefitCostKey, string> = {
-  premiums: "Premiums (annual)",
+  premiums: "Medical + dental + vision premiums",
   deductible: "Deductible",
   oopMax: "OOP max",
 }
@@ -63,7 +63,7 @@ export function annualBenefitsCost(o: Offer): {
   const p = selectedPlan(o)
   const premiums = annualPremiumsTotal(o)
   const deductible = p?.medicalDeductible ?? 0
-  const oopMax = p?.medicalOopMax ?? 0
+  const oopMax = netOopMaxAfterDeductible(p)
   return {
     premiums,
     deductible,
@@ -83,25 +83,25 @@ export function benefitSegmentsForOffer(
 
   const gains: BenefitSegment<BenefitGainKey>[] = [
     {
+      key: "match401k",
+      label: BENEFIT_GAIN_LABELS.match401k,
+      value: annual401kMatch(o, yearIdx),
+    },
+    {
       key: "hsa",
       label: BENEFIT_GAIN_LABELS.hsa,
       value: plan?.hsaContribution ?? 0,
     },
     {
-      key: "parentalLeave",
-      label: BENEFIT_GAIN_LABELS.parentalLeave,
-      value: parentalLeave,
-    },
-    { key: "pto", label: BENEFIT_GAIN_LABELS.pto, value: pto },
-    {
       key: "stipends",
       label: BENEFIT_GAIN_LABELS.stipends,
       value: o.benefits.stipends ?? 0,
     },
+    { key: "pto", label: BENEFIT_GAIN_LABELS.pto, value: pto },
     {
-      key: "match401k",
-      label: BENEFIT_GAIN_LABELS.match401k,
-      value: annual401kMatch(o, yearIdx),
+      key: "parentalLeave",
+      label: BENEFIT_GAIN_LABELS.parentalLeave,
+      value: parentalLeave,
     },
   ]
 
@@ -115,7 +115,7 @@ export function benefitSegmentsForOffer(
     {
       key: "oopMax",
       label: BENEFIT_COST_LABELS.oopMax,
-      value: plan?.medicalOopMax ?? 0,
+      value: netOopMaxAfterDeductible(plan),
     },
   ]
 
@@ -146,6 +146,11 @@ function parentalLeaveValue(o: Offer, yearIdx: number): number {
 
 function ptoValue(o: Offer): number {
   return (o.cash.base / 52) * (o.benefits.ptoWeeks ?? 0)
+}
+
+function netOopMaxAfterDeductible(plan: BenefitPlan | null): number {
+  if (!plan) return 0
+  return Math.max(0, plan.medicalOopMax - plan.medicalDeductible)
 }
 
 function sumSegments(segments: BenefitSegment[]): number {

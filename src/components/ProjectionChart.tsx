@@ -25,8 +25,8 @@ import { COVERAGE_TIER_LABELS, type Offer } from "@/lib/types"
 type ChartKey = BenefitGainKey | BenefitCostKey
 
 const CHART_COLORS: Record<ChartKey, string> = {
-  match401k: "#14b8a6",
-  hsa: "#06b6d4",
+  match401k: "#16a34a",
+  hsa: "#2563eb",
   parentalLeave: "#ec4899",
   pto: "#6366f1",
   stipends: "#eab308",
@@ -55,6 +55,8 @@ export function ProjectionChart({
   sharedCostMaxAbs,
 }: ProjectionChartProps) {
   const visibleYears = useMemo(() => [0], [])
+  const chartTitle =
+    offers.length === 1 ? `${offers[0].company} benefits` : "Benefits"
 
   const INCOME_SHARE = 0.7
 
@@ -67,6 +69,7 @@ export function ProjectionChart({
     incomeTicks,
     costTicks,
     costScale,
+    groupAnnotations,
   } = useMemo(() => {
     type Raw = {
       offerId: string
@@ -135,6 +138,62 @@ export function ProjectionChart({
     const costTickRealValues =
       effCostMaxAbs > 0 ? [effCostMaxAbs, effCostMaxAbs / 2] : []
     const costTicks = costTickRealValues.map((v) => Math.round(-v * scale))
+    const firstOfferSegments = offers[0]
+      ? benefitSegmentsForOffer(offers[0], visibleYears[0])
+      : null
+    const firstGains = Object.fromEntries(
+      firstOfferSegments?.gains.map((segment) => [
+        segment.key,
+        Math.round(segment.value),
+      ]) ?? [],
+    ) as Partial<Record<BenefitGainKey, number>>
+    const firstCosts = Object.fromEntries(
+      firstOfferSegments?.costs.map((segment) => [
+        segment.key,
+        Math.round(segment.value),
+      ]) ?? [],
+    ) as Partial<Record<BenefitCostKey, number>>
+
+    const cashValue =
+      (firstGains.match401k ?? 0) +
+      (firstGains.hsa ?? 0) +
+      (firstGains.stipends ?? 0)
+    const timeValue = (firstGains.pto ?? 0) + (firstGains.parentalLeave ?? 0)
+    const expectedCost = (firstCosts.premiums ?? 0) + (firstCosts.deductible ?? 0)
+    const maxRisk = firstCosts.oopMax ?? 0
+    const annotations: BenefitGroupAnnotation[] =
+      offers.length === 1
+        ? [
+            {
+              key: "cashValue",
+              label: "Cash value",
+              total: cashValue,
+              start: 0,
+              end: cashValue,
+            },
+            {
+              key: "timeValue",
+              label: "Time value",
+              total: timeValue,
+              start: cashValue,
+              end: cashValue + timeValue,
+            },
+            {
+              key: "expectedCost",
+              label: "Expected cost",
+              total: expectedCost,
+              start: 0,
+              end: -expectedCost * scale,
+            },
+            {
+              key: "maxRisk",
+              label: "Max risk",
+              total: maxRisk,
+              start: -expectedCost * scale,
+              end: -(expectedCost + maxRisk) * scale,
+            },
+          ].filter((annotation) => annotation.total > 0)
+        : []
 
     return {
       chartData: rows,
@@ -145,6 +204,7 @@ export function ProjectionChart({
       incomeTicks,
       costTicks,
       costScale: scale,
+      groupAnnotations: annotations,
     }
   }, [offers, visibleYears, sharedPositiveMax, sharedCostMaxAbs])
 
@@ -155,7 +215,7 @@ export function ProjectionChart({
     >
       <div className="flex items-center justify-between mb-2 gap-3">
         <h2 className="text-sm font-semibold text-slate-900">
-          Benefits
+          {chartTitle}
         </h2>
       </div>
 
@@ -238,7 +298,7 @@ export function ProjectionChart({
       </div>
 
       <div
-        className="w-full h-64 sm:h-72"
+        className="relative w-full h-64 sm:h-72"
         role="img"
         aria-label={`Benefits chart for ${offers.map((o) => o.company).join(", ")}`}
       >
@@ -259,21 +319,41 @@ export function ProjectionChart({
               <pattern
                 id="oopMaxPattern"
                 patternUnits="userSpaceOnUse"
-                width={6}
-                height={6}
+                width={8}
+                height={8}
                 patternTransform="rotate(45)"
               >
                 <rect
-                  width={6}
-                  height={6}
+                  width={8}
+                  height={8}
                   fill={CHART_COLORS.oopMax}
-                  fillOpacity={0.12}
+                  fillOpacity={0.08}
                 />
                 <rect
-                  width={2}
-                  height={6}
+                  width={1.5}
+                  height={8}
                   fill={CHART_COLORS.oopMax}
-                  fillOpacity={0.7}
+                  fillOpacity={0.34}
+                />
+              </pattern>
+              <pattern
+                id="parentalLeavePattern"
+                patternUnits="userSpaceOnUse"
+                width={8}
+                height={8}
+                patternTransform="rotate(45)"
+              >
+                <rect
+                  width={8}
+                  height={8}
+                  fill={CHART_COLORS.parentalLeave}
+                  fillOpacity={0.08}
+                />
+                <rect
+                  width={1.5}
+                  height={8}
+                  fill={CHART_COLORS.parentalLeave}
+                  fillOpacity={0.34}
                 />
               </pattern>
             </defs>
@@ -309,6 +389,7 @@ export function ProjectionChart({
             <Tooltip
               shared={false}
               cursor={{ fill: "rgba(15, 23, 42, 0.04)" }}
+              wrapperStyle={{ zIndex: 30 }}
               contentStyle={{
                 fontSize: 12,
                 borderRadius: 8,
@@ -329,13 +410,20 @@ export function ProjectionChart({
               const bars: ReactElement[] = []
               // Positive segments for this year.
               activePos.forEach((k, i) => {
+                const isParentalLeave = k === "parentalLeave"
                 bars.push(
                   <Bar
                     key={yearChartKey(yi, k)}
                     dataKey={yearChartKey(yi, k)}
                     name={benefitSegmentLabel(k)}
                     stackId={`y${yi}`}
-                    fill={CHART_COLORS[k]}
+                    fill={
+                      isParentalLeave
+                        ? "url(#parentalLeavePattern)"
+                        : CHART_COLORS[k]
+                    }
+                    stroke="#ffffff"
+                    strokeWidth={1}
                     isAnimationActive={false}
                     barSize={28}
                     radius={
@@ -354,6 +442,8 @@ export function ProjectionChart({
                     name={benefitSegmentLabel(k)}
                     stackId={`y${yi}`}
                     fill={isOop ? "url(#oopMaxPattern)" : CHART_COLORS[k]}
+                    stroke="#ffffff"
+                    strokeWidth={1}
                     isAnimationActive={false}
                     barSize={28}
                     radius={
@@ -366,6 +456,11 @@ export function ProjectionChart({
             })}
           </BarChart>
         </ResponsiveContainer>
+        <BenefitGroupAnnotations
+          annotations={groupAnnotations}
+          domainTop={domainTop}
+          domainBottom={domainBottom}
+        />
       </div>
 
       {/* Screen-reader-only summary of the chart's data. */}
@@ -403,6 +498,112 @@ export function ProjectionChart({
       </table>
     </Card>
   )
+}
+
+interface BenefitGroupAnnotation {
+  key: string
+  label: string
+  total: number
+  start: number
+  end: number
+}
+
+function BenefitGroupAnnotations({
+  annotations,
+  domainTop,
+  domainBottom,
+}: {
+  annotations: BenefitGroupAnnotation[]
+  domainTop: number
+  domainBottom: number
+}) {
+  if (!annotations.length) return null
+
+  const domainSpan = domainTop - domainBottom
+  const yToPct = (value: number) =>
+    ((domainTop - value) / domainSpan) * 100
+  const labels = avoidAnnotationOverlap(
+    annotations.map((annotation) => {
+      const top = Math.min(yToPct(annotation.start), yToPct(annotation.end))
+      const bottom = Math.max(yToPct(annotation.start), yToPct(annotation.end))
+      return {
+        annotation,
+        top,
+        bottom,
+        labelTop: (top + bottom) / 2,
+      }
+    }),
+  )
+
+  return (
+    <div
+      className="pointer-events-none absolute bottom-6 left-14 right-2 top-2"
+      aria-hidden="true"
+    >
+      {labels.map(({ annotation, top, bottom, labelTop }) => {
+        return (
+          <div
+            key={annotation.key}
+            className="absolute"
+            style={{
+              left: "calc(50% + 22px)",
+              top: `${top}%`,
+              height: `${bottom - top}%`,
+            }}
+          >
+            <div className="relative h-full min-h-4 w-2 border-y border-r border-slate-400/80" />
+            <div
+              className="absolute left-2 flex w-[104px] translate-x-1.5 -translate-y-1/2 items-baseline justify-between gap-1 rounded-sm bg-white/85 px-1 py-0.5 text-[9.5px] leading-none text-slate-600 shadow-[0_0_0_1px_rgb(226_232_240_/_0.8)]"
+              style={{
+                top: `${((labelTop - top) / (bottom - top)) * 100}%`,
+              }}
+            >
+              <span className="font-semibold text-slate-700">
+                {annotation.label}
+              </span>
+              <span>{fmt(annotation.total)}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function avoidAnnotationOverlap<
+  T extends { labelTop: number },
+>(items: T[]): T[] {
+  const minGap = 8
+  const sorted = [...items].sort((a, b) => a.labelTop - b.labelTop)
+
+  for (let i = 1; i < sorted.length; i += 1) {
+    const previous = sorted[i - 1]
+    const current = sorted[i]
+    if (current.labelTop - previous.labelTop < minGap) {
+      current.labelTop = previous.labelTop + minGap
+    }
+  }
+
+  const overflow = sorted[sorted.length - 1]?.labelTop - 96
+  if (overflow > 0) {
+    for (let i = sorted.length - 1; i >= 0; i -= 1) {
+      sorted[i].labelTop -= overflow
+    }
+  }
+
+  for (let i = sorted.length - 2; i >= 0; i -= 1) {
+    const next = sorted[i + 1]
+    const current = sorted[i]
+    if (next.labelTop - current.labelTop < minGap) {
+      current.labelTop = next.labelTop - minGap
+    }
+  }
+
+  for (const item of sorted) {
+    item.labelTop = Math.max(4, Math.min(96, item.labelTop))
+  }
+
+  return sorted
 }
 
 function benefitSegmentLabel(key: ChartKey): string {

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EditOffersSheet } from "@/components/EditOffersSheet"
 import { ProjectionChart } from "@/components/ProjectionChart"
@@ -38,6 +38,8 @@ export default function ComparePage() {
   const [sheetInitialTab, setSheetInitialTab] = useState<string | undefined>(
     undefined,
   )
+  const [viewMenuOpen, setViewMenuOpen] = useState(false)
+  const viewMenuRef = useRef<HTMLDivElement | null>(null)
   // Initial toast: if the URL had a share hash but it failed to decode,
   // surface a one-time error so the user knows we silently fell back.
   const [toast, setToast] = useState<string | null>(() => {
@@ -58,6 +60,17 @@ export default function ComparePage() {
     const t = setTimeout(() => setToast(null), 2200)
     return () => clearTimeout(t)
   }, [toast])
+
+  useEffect(() => {
+    if (!viewMenuOpen) return
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!viewMenuRef.current?.contains(event.target as Node)) {
+        setViewMenuOpen(false)
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown)
+    return () => document.removeEventListener("pointerdown", handlePointerDown)
+  }, [viewMenuOpen])
 
   const projections = useMemo(
     () => state.offers.map((o) => projectOffer(o)),
@@ -167,6 +180,17 @@ export default function ComparePage() {
     setSheetOpen(true)
   }, [state.offers])
 
+  const handleSetViewOption = useCallback(
+    (key: "showDirectComp" | "showBenefits", value: boolean) => {
+      setState((s) => {
+        const nextView = { ...s.view, [key]: value }
+        if (!nextView.showDirectComp && !nextView.showBenefits) return s
+        return { ...s, view: nextView }
+      })
+    },
+    [],
+  )
+
   const handleShare = useCallback(async () => {
     const url = encodeShareUrl(state)
     try {
@@ -186,6 +210,11 @@ export default function ComparePage() {
     state.offers.length >= 2
       ? `${state.offers[0].company} vs ${state.offers[1].company}${state.offers.length > 2 ? ` +${state.offers.length - 2}` : ""}`
       : state.offers[0]?.company ?? "Compare offers"
+  const desktopCardMinWidth = 360
+  const desktopGridGap = 20
+  const desktopGridMinWidth =
+    state.offers.length * desktopCardMinWidth +
+    Math.max(state.offers.length - 1, 0) * desktopGridGap
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -201,7 +230,7 @@ export default function ComparePage() {
               {title}
             </h1>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 sm:flex sm:items-center">
             <Button
               variant="outline"
               size="sm"
@@ -209,6 +238,51 @@ export default function ComparePage() {
             >
               Edit offers
             </Button>
+            <div ref={viewMenuRef} className="relative">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                type="button"
+                aria-label="Choose visible cards"
+                aria-expanded={viewMenuOpen}
+                onClick={() => setViewMenuOpen((open) => !open)}
+              >
+                <Settings size={15} />
+              </Button>
+              {viewMenuOpen && (
+                <div className="absolute right-0 top-9 z-40 w-52 rounded-md border border-slate-200 bg-white p-2 text-sm shadow-lg">
+                  <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Show
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-slate-700 hover:bg-slate-50 has-disabled:cursor-not-allowed has-disabled:opacity-50">
+                    <input
+                      type="checkbox"
+                      checked={state.view.showDirectComp}
+                      disabled={
+                        state.view.showDirectComp && !state.view.showBenefits
+                      }
+                      onChange={(e) =>
+                        handleSetViewOption("showDirectComp", e.target.checked)
+                      }
+                    />
+                    Direct comp cards
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-slate-700 hover:bg-slate-50 has-disabled:cursor-not-allowed has-disabled:opacity-50">
+                    <input
+                      type="checkbox"
+                      checked={state.view.showBenefits}
+                      disabled={
+                        state.view.showBenefits && !state.view.showDirectComp
+                      }
+                      onChange={(e) =>
+                        handleSetViewOption("showBenefits", e.target.checked)
+                      }
+                    />
+                    Benefits cards
+                  </label>
+                </div>
+              )}
+            </div>
             <Button size="sm" onClick={handleAddOffer}>
               <Plus size={14} />
               Add offer
@@ -216,76 +290,87 @@ export default function ComparePage() {
           </div>
         </div>
 
-        <div className="hidden space-y-5 md:block">
+        <div className="hidden min-[480px]:block overflow-x-auto pb-2">
           <div
-            className="grid gap-5"
+            className="space-y-5"
             style={{
-              gridTemplateColumns: `repeat(${Math.max(state.offers.length, 1)}, minmax(0, 1fr))`,
+              minWidth: `max(100%, ${desktopGridMinWidth}px)`,
             }}
           >
-            {state.offers.map((offer) => {
-              const projection = projections.find(
-                (p) => p.offerId === offer.id,
-              )
-              if (!projection) return null
-              const other = state.offers.find((o) => o.id !== offer.id)
-              const otherProj = other
-                ? projections.find((p) => p.offerId === other.id)
-                : undefined
-              const y1 = projection.perYear[0]
-              const y1Total = y1.cash + y1.equity
-              const otherY1Total = otherProj
-                ? otherProj.perYear[0].cash + otherProj.perYear[0].equity
-                : undefined
-              return (
-                <SummaryCard
-                  key={offer.id}
-                  offer={offer}
-                  projection={projection}
-                  bestY1PerCategory={bestY1PerCategory}
-                  isOverallWinner={y1Total >= bestY1Total}
-                  comparisonName={other?.company}
-                  comparisonY1Total={otherY1Total}
-                  onEdit={() => openEditFor(offer.id)}
-                />
-              )
-            })}
-          </div>
+            {state.view.showDirectComp && (
+              <div
+                className="grid gap-5"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(state.offers.length, 1)}, minmax(${desktopCardMinWidth}px, 1fr))`,
+                }}
+              >
+                {state.offers.map((offer) => {
+                  const projection = projections.find(
+                    (p) => p.offerId === offer.id,
+                  )
+                  if (!projection) return null
+                  const other = state.offers.find((o) => o.id !== offer.id)
+                  const otherProj = other
+                    ? projections.find((p) => p.offerId === other.id)
+                    : undefined
+                  const y1 = projection.perYear[0]
+                  const y1Total = y1.cash + y1.equity
+                  const otherY1Total = otherProj
+                    ? otherProj.perYear[0].cash + otherProj.perYear[0].equity
+                    : undefined
+                  return (
+                    <SummaryCard
+                      key={offer.id}
+                      offer={offer}
+                      projection={projection}
+                      bestY1PerCategory={bestY1PerCategory}
+                      isOverallWinner={y1Total >= bestY1Total}
+                      comparisonName={other?.company}
+                      comparisonY1Total={otherY1Total}
+                      onEdit={() => openEditFor(offer.id)}
+                    />
+                  )
+                })}
+              </div>
+            )}
 
-          <div
-            className="grid gap-5"
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(state.offers.length, 1)}, minmax(0, 1fr))`,
-            }}
-          >
-            {state.offers.map((offer) => (
-              <ProjectionChart
-                key={offer.id}
-                offers={[offer]}
-                sharedPositiveMax={benefitChartScale.sharedPositiveMax}
-                sharedCostMaxAbs={benefitChartScale.sharedCostMaxAbs}
-                onSelectPlan={(offerId, planId) =>
-                  setState((s) => ({
-                    ...s,
-                    offers: s.offers.map((o) =>
-                      o.id === offerId
-                        ? {
-                            ...o,
-                            benefits: {
-                              ...o.benefits,
-                              selectedPlanId: planId,
-                            },
-                          }
-                        : o,
-                    ),
-                  }))
-                }
-              />
-            ))}
+            {state.view.showBenefits && (
+              <div
+                className="grid gap-5"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(state.offers.length, 1)}, minmax(${desktopCardMinWidth}px, 1fr))`,
+                }}
+              >
+                {state.offers.map((offer) => (
+                  <ProjectionChart
+                    key={offer.id}
+                    offers={[offer]}
+                    sharedPositiveMax={benefitChartScale.sharedPositiveMax}
+                    sharedCostMaxAbs={benefitChartScale.sharedCostMaxAbs}
+                    onSelectPlan={(offerId, planId) =>
+                      setState((s) => ({
+                        ...s,
+                        offers: s.offers.map((o) =>
+                          o.id === offerId
+                            ? {
+                                ...o,
+                                benefits: {
+                                  ...o.benefits,
+                                  selectedPlanId: planId,
+                                },
+                              }
+                            : o,
+                        ),
+                      }))
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="space-y-5 md:hidden">
+        <div className="space-y-5 min-[480px]:hidden">
           {state.offers.map((offer) => {
             const projection = projections.find((p) => p.offerId === offer.id)
             if (!projection) return null
@@ -301,36 +386,40 @@ export default function ComparePage() {
 
             return (
               <section key={offer.id} className="space-y-3">
-                <SummaryCard
-                  offer={offer}
-                  projection={projection}
-                  bestY1PerCategory={bestY1PerCategory}
-                  isOverallWinner={y1Total >= bestY1Total}
-                  comparisonName={other?.company}
-                  comparisonY1Total={otherY1Total}
-                  onEdit={() => openEditFor(offer.id)}
-                />
-                <ProjectionChart
-                  offers={[offer]}
-                  sharedPositiveMax={benefitChartScale.sharedPositiveMax}
-                  sharedCostMaxAbs={benefitChartScale.sharedCostMaxAbs}
-                  onSelectPlan={(offerId, planId) =>
-                    setState((s) => ({
-                      ...s,
-                      offers: s.offers.map((o) =>
-                        o.id === offerId
-                          ? {
-                              ...o,
-                              benefits: {
-                                ...o.benefits,
-                                selectedPlanId: planId,
-                              },
-                            }
-                          : o,
-                      ),
-                    }))
-                  }
-                />
+                {state.view.showDirectComp && (
+                  <SummaryCard
+                    offer={offer}
+                    projection={projection}
+                    bestY1PerCategory={bestY1PerCategory}
+                    isOverallWinner={y1Total >= bestY1Total}
+                    comparisonName={other?.company}
+                    comparisonY1Total={otherY1Total}
+                    onEdit={() => openEditFor(offer.id)}
+                  />
+                )}
+                {state.view.showBenefits && (
+                  <ProjectionChart
+                    offers={[offer]}
+                    sharedPositiveMax={benefitChartScale.sharedPositiveMax}
+                    sharedCostMaxAbs={benefitChartScale.sharedCostMaxAbs}
+                    onSelectPlan={(offerId, planId) =>
+                      setState((s) => ({
+                        ...s,
+                        offers: s.offers.map((o) =>
+                          o.id === offerId
+                            ? {
+                                ...o,
+                                benefits: {
+                                  ...o.benefits,
+                                  selectedPlanId: planId,
+                                },
+                              }
+                            : o,
+                        ),
+                      }))
+                    }
+                  />
+                )}
               </section>
             )
           })}

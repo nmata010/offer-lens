@@ -4,19 +4,32 @@ import { SAMPLE_OFFERS } from "./sample"
 const STORAGE_KEY = "offerlens:state"
 const SCHEMA_VERSION = 10
 
+export interface ViewConfig {
+  showDirectComp: boolean
+  showBenefits: boolean
+}
+
 export interface PersistedState {
   schemaVersion: number
   offers: Offer[]
+  view: ViewConfig
 }
 
 interface RawPersisted {
   schemaVersion?: number
   offers?: Offer[]
+  view?: Partial<ViewConfig>
+}
+
+export const DEFAULT_VIEW_CONFIG: ViewConfig = {
+  showDirectComp: true,
+  showBenefits: true,
 }
 
 export const DEFAULT_STATE: PersistedState = {
   schemaVersion: SCHEMA_VERSION,
   offers: SAMPLE_OFFERS,
+  view: DEFAULT_VIEW_CONFIG,
 }
 
 export function loadState(): PersistedState {
@@ -63,5 +76,20 @@ function migrate(raw: RawPersisted): PersistedState {
     Array.isArray(raw.offers) && raw.offers.length > 0
       ? raw.offers
       : SAMPLE_OFFERS
-  return { schemaVersion: SCHEMA_VERSION, offers }
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    offers,
+    view: normalizeViewConfig(raw.view),
+  }
+}
+
+export function normalizeViewConfig(view?: Partial<ViewConfig>): ViewConfig {
+  const normalized = {
+    showDirectComp: view?.showDirectComp ?? DEFAULT_VIEW_CONFIG.showDirectComp,
+    showBenefits: view?.showBenefits ?? DEFAULT_VIEW_CONFIG.showBenefits,
+  }
+  if (!normalized.showDirectComp && !normalized.showBenefits) {
+    return DEFAULT_VIEW_CONFIG
+  }
+  return normalized
 }

@@ -1,4 +1,4 @@
-import type { PersistedState } from "./storage"
+import { normalizeViewConfig, type PersistedState } from "./storage"
 
 // URL-safe base64 of UTF-8 JSON, in the hash fragment so it never hits the server.
 const HASH_PREFIX = "#s="
@@ -23,6 +23,7 @@ export function encodeShareUrl(state: PersistedState): string {
   const payload = {
     v: state.schemaVersion,
     o: state.offers,
+    c: state.view,
   }
   const encoded = toBase64Url(JSON.stringify(payload))
   const { origin, pathname } = window.location
@@ -36,11 +37,13 @@ export function tryDecodeShareHash(hash: string): PersistedState | null {
     const parsed = JSON.parse(json) as {
       v?: number
       o?: PersistedState["offers"]
+      c?: Partial<PersistedState["view"]>
     }
     if (!parsed.o) return null
     return {
       schemaVersion: parsed.v ?? 1,
       offers: parsed.o,
+      view: normalizeViewConfig(parsed.c),
     }
   } catch {
     return null

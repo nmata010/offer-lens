@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   annualPremiumsTotal,
+  benefitSegmentsForOffer,
   benefitChartTotals,
   selectedPlan,
 } from "./benefits"
@@ -82,9 +83,9 @@ describe("benefitChartTotals", () => {
     // positive includes 401k match (5850) + HSA (1500) + parental leave
     // + PTO + stipends. Just sanity-check shape.
     expect(positive).toBeGreaterThan(5850 + 1500)
-    // costAbs = annual premiums + deductible + OOP max.
-    // = 3420 + 1500 + 6000 = 10920
-    expect(costAbs).toBe(10920)
+    // costAbs = annual premiums + deductible + remaining OOP risk after deductible.
+    // = 3420 + 1500 + (6000 - 1500) = 9420
+    expect(costAbs).toBe(9420)
   })
 
   it("returns zero positives when no plan + no PTO + no stipends + no parental leave", () => {
@@ -108,6 +109,26 @@ describe("benefitChartTotals", () => {
     const { positive, costAbs } = benefitChartTotals(offer)
     expect(positive).toBe(0)
     expect(costAbs).toBe(0)
+  })
+})
+
+describe("benefitSegmentsForOffer", () => {
+  it("includes medical, dental, and vision premiums in the premiums segment", () => {
+    const segments = benefitSegmentsForOffer(STRIPE)
+    const premiums = segments.costs.find(
+      (segment) => segment.key === "premiums",
+    )
+
+    // Stripe Silver/Employee: (medical 240 + dental 30 + vision 15) * 12.
+    expect(premiums?.value).toBe(3420)
+  })
+
+  it("models OOP max as remaining risk after the deductible", () => {
+    const segments = benefitSegmentsForOffer(STRIPE)
+    const oopMax = segments.costs.find((segment) => segment.key === "oopMax")
+
+    // Stripe Silver/Employee: OOP max 6000 includes deductible 1500.
+    expect(oopMax?.value).toBe(4500)
   })
 })
 

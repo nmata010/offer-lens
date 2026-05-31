@@ -6,6 +6,10 @@ import type { PersistedState } from "./storage"
 const STATE: PersistedState = {
   schemaVersion: 9,
   offers: SAMPLE_OFFERS,
+  view: {
+    showDirectComp: true,
+    showBenefits: false,
+  },
 }
 
 describe("share URL roundtrip", () => {
@@ -18,6 +22,37 @@ describe("share URL roundtrip", () => {
     expect(decoded).not.toBeNull()
     expect(decoded?.offers).toEqual(STATE.offers)
     expect(decoded?.schemaVersion).toBe(STATE.schemaVersion)
+    expect(decoded?.view).toEqual(STATE.view)
+  })
+
+  it("defaults missing view config to showing all cards", () => {
+    const legacyPayload = btoa(JSON.stringify({ v: 9, o: SAMPLE_OFFERS }))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "")
+
+    expect(tryDecodeShareHash(`#s=${legacyPayload}`)?.view).toEqual({
+      showDirectComp: true,
+      showBenefits: true,
+    })
+  })
+
+  it("prevents shared state from hiding every card type", () => {
+    const hiddenPayload = btoa(
+      JSON.stringify({
+        v: 9,
+        o: SAMPLE_OFFERS,
+        c: { showDirectComp: false, showBenefits: false },
+      }),
+    )
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "")
+
+    expect(tryDecodeShareHash(`#s=${hiddenPayload}`)?.view).toEqual({
+      showDirectComp: true,
+      showBenefits: true,
+    })
   })
 
   it("returns null for an empty hash", () => {
