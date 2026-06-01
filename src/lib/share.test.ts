@@ -16,13 +16,30 @@ describe("share URL roundtrip", () => {
   it("encodes and decodes a state losslessly", () => {
     // jsdom provides window.location with origin/pathname for encodeShareUrl.
     const url = encodeShareUrl(STATE)
-    expect(url).toContain("#s=")
-    const hash = "#s=" + url.split("#s=")[1]
+    expect(url).toContain("#v2=")
+    const hash = "#v2=" + url.split("#v2=")[1]
     const decoded = tryDecodeShareHash(hash)
     expect(decoded).not.toBeNull()
     expect(decoded?.offers).toEqual(STATE.offers)
     expect(decoded?.schemaVersion).toBe(STATE.schemaVersion)
     expect(decoded?.view).toEqual(STATE.view)
+  })
+
+  it("uses a shorter v2 payload than the legacy full JSON payload", () => {
+    const url = encodeShareUrl(STATE)
+    const v2Payload = url.split("#v2=")[1]
+    const legacyPayload = btoa(
+      JSON.stringify({
+        v: STATE.schemaVersion,
+        o: STATE.offers,
+        c: STATE.view,
+      }),
+    )
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "")
+
+    expect(v2Payload.length).toBeLessThan(legacyPayload.length)
   })
 
   it("defaults missing view config to showing all cards", () => {
